@@ -1,0 +1,26 @@
+[project]
+name = "code-review-board"
+version = "0.1.0"
+description = "A multi-agent code review board built with Strands Agents on Amazon Bedrock AgentCore Runtime."
+requires-python = ">=3.11,<3.13"
+
+# Phase 1 only needs the Strands SDK itself. We'll add the tools package,
+# the AgentCore runtime wrapper, and test deps in later phases.
+dependencies = [
+    "pydantic>=2.14.2",
+    "strands-agents>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+# Tell uv this is just an app whose dependencies we manage — don't try to
+# build/install the project itself. Keeps Phase 1 friction-free.
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
