@@ -2,9 +2,6 @@
 # (Bedrock model, ECR repo, log groups) below.
 data "aws_caller_identity" "current" {}
 
-# Reuse the GitHub Actions OIDC provider that Project 1 already created at the
-# account level, rather than creating a second one. Looked up by its issuer URL.
-# Its ARN feeds the CI role trust policies we add in Phase 7.
 data "aws_iam_openid_connect_provider" "github" {
-  url = "https://token.actions.githubusercontent.com"
+  arn = "arn:aws:iam::${local.account_id}:oidc-provider/token.actions.githubusercontent.com"
 }
