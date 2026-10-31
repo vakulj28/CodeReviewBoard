@@ -1,0 +1,120 @@
+name: code-review-board Terraform
+
+on:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "apply (create/update) or destroy (full teardown)"
+        type: choice
+        options: [apply, destroy]
+        default: apply
+      deploy_runtime:
+        description: "Create the AgentCore Runtime? false = ECR + roles only (bootstrap / runtime down); true = full stack. Ignored for destroy."
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: code-review-board-tf-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---- plan: on PRs + pushes, read-only role, no writes ----
+  plan:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      # Read-only plan role via OIDC (no stored keys).
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          aws-region: eu-west-1
+          mask-aws-account-id: true
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Validate
+        run: terraform validate -no-color
+
+      # -lock=false: the plan role is read-only and can't write the state lock.
+      - name: Plan
+        run: terraform plan -input=false -lock=false -no-color -var-file=terraform.tfvars
+
+  # ---- apply: manual + gated (required reviewer on the environment) ----
+  apply:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
+    runs-on: ubuntu-latest
+    environment: code-review-board-prod
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: eu-west-1
+          mask-aws-account-id: true
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Apply
+        run: terraform apply -input=false -auto-approve -var-file=terraform.tfvars -var="deploy_runtime=${{ inputs.deploy_runtime }}"
+
+  # ---- destroy: manual + gated; full teardown back to ~$0 ----
+  destroy:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    environment: code-review-board-prod
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: eu-west-1
+          mask-aws-account-id: true
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Destroy
+        run: terraform destroy -input=false -auto-approve -var-file=terraform.tfvars -var="deploy_runtime=true"

@@ -36,3 +36,9 @@ variable "model_id" {
   type        = string
   default     = "eu.amazon.nova-lite-v1:0"
 }
+
+variable "deploy_runtime" {
+  description = "Create the AgentCore Runtime? false = ECR + roles only (bootstrap / runtime down); true = full stack (runtime up)."
+  type        = bool
+  default     = true
+}

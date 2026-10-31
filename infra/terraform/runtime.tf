@@ -5,11 +5,16 @@
 # (GET /ping + POST /invocations) our board/runtime.py implements.
 #
 # NOTE on apply ordering: the runtime points at an image tag that only exists
-# after CI builds and pushes it. So a from-scratch `terraform apply` can't create
-# everything in one pass — Phase 7's pipeline applies ECR + the role first, pushes
-# the image, then applies this runtime. `terraform plan` here is fine either way.
+# after CI builds and pushes it. So the deploy sequence is: apply with
+# deploy_runtime=false (ECR + roles), push the image, then apply with
+# deploy_runtime=true to create this runtime. The var.deploy_runtime count below
+# makes that a clean one-flag toggle instead of a failed partial apply — and the
+# same flag is the up/down lever (drop just the memory-billed runtime).
 
 resource "aws_bedrockagentcore_agent_runtime" "board" {
+  # See the note above: false = ECR + roles only; true = full stack.
+  count = var.deploy_runtime ? 1 : 0
+
   agent_runtime_name = local.runtime_name
   role_arn           = aws_iam_role.runtime.arn
 
@@ -29,7 +34,7 @@ resource "aws_bedrockagentcore_agent_runtime" "board" {
     server_protocol = "HTTP"
   }
 
-  # Cost lever: reclaim an idle session's memory after 15 minutes so we stop
+  # Cost lever: reclaim an idle session's memory after 3 minutes so we stop
   # paying for it between demo invocations.
   lifecycle_configuration {
     idle_runtime_session_timeout = 180

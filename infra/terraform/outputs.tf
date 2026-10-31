@@ -17,5 +17,6 @@ output "ecr_repository_url" {
 }
 
 output "runtime_arn" {
-  value = aws_bedrockagentcore_agent_runtime.board.agent_runtime_arn
+  # null when deploy_runtime = false (the runtime isn't created).
+  value = one(aws_bedrockagentcore_agent_runtime.board[*].agent_runtime_arn)
 }
