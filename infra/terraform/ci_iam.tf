@@ -205,9 +205,18 @@ data "aws_iam_policy_document" "apply" {
     sid    = "AgentCoreRuntime"
     effect = "Allow"
     actions = [
+      # The runtime.
       "bedrock-agentcore:CreateAgentRuntime", "bedrock-agentcore:UpdateAgentRuntime",
       "bedrock-agentcore:DeleteAgentRuntime", "bedrock-agentcore:GetAgentRuntime",
       "bedrock-agentcore:ListAgentRuntimes",
+      # Creating a runtime also creates a default endpoint.
+      "bedrock-agentcore:CreateAgentRuntimeEndpoint", "bedrock-agentcore:UpdateAgentRuntimeEndpoint",
+      "bedrock-agentcore:DeleteAgentRuntimeEndpoint", "bedrock-agentcore:GetAgentRuntimeEndpoint",
+      "bedrock-agentcore:ListAgentRuntimeEndpoints",
+      # And a workload identity for the runtime.
+      "bedrock-agentcore:CreateWorkloadIdentity", "bedrock-agentcore:GetWorkloadIdentity",
+      "bedrock-agentcore:DeleteWorkloadIdentity", "bedrock-agentcore:ListWorkloadIdentities",
+      # Tagging (default_tags).
       "bedrock-agentcore:TagResource", "bedrock-agentcore:UntagResource",
       "bedrock-agentcore:ListTagsForResource",
     ]
