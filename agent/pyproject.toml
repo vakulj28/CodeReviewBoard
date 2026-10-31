@@ -7,6 +7,7 @@ requires-python = ">=3.11,<3.13"
 # Phase 1 only needs the Strands SDK itself. We'll add the tools package,
 # the AgentCore runtime wrapper, and test deps in later phases.
 dependencies = [
+    "aws-opentelemetry-distro>=0.22.0",
     "bedrock-agentcore>=1.25.2",
     "pydantic>=2.14.2",
     "strands-agents>=1.0",

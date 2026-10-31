@@ -20,5 +20,9 @@ COPY board/ ./board/
 # Document that the service listens on 8080 (the port AgentCore talks to).
 EXPOSE 8080
 
-# The command the container runs on start: launch the Phase-3 Runtime server.
-CMD ["uv", "run", "--no-dev", "python", "-m", "board.runtime"]
+# The command the container runs on start: launch the Runtime server WRAPPED in
+# opentelemetry-instrument. That wrapper (from aws-opentelemetry-distro) auto-
+# instruments the app and exports spans to the OTLP endpoint AgentCore injects,
+# so the supervisor -> critics -> formatter call tree shows up in CloudWatch
+# GenAI Observability. Without this wrapper, no traces are emitted.
+CMD ["uv", "run", "--no-dev", "opentelemetry-instrument", "python", "-m", "board.runtime"]
