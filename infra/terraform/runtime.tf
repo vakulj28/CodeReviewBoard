@@ -38,6 +38,9 @@ resource "aws_bedrockagentcore_agent_runtime" "board" {
   # paying for it between demo invocations.
   lifecycle_configuration {
     idle_runtime_session_timeout = 180
+    # AWS defaults max_lifetime to 28800s (8h). Set it explicitly so Terraform's
+    # plan matches what the API returns (otherwise: "inconsistent result" error).
+    max_lifetime = 28800
   }
 
   # Make the dependency on the policy explicit: the role must have its
